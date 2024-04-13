@@ -12,6 +12,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool isLoading = true;
   List items = [];
   @override
   void initState() {
@@ -26,18 +27,27 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Todo'),
         centerTitle: true,
       ),
-      body: ListView.builder(
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return ListTile(
-              leading: CircleAvatar(
-                child: Text('${index + 1}'),
-              ),
-              title: Text(item['title']),
-              subtitle: Text(item['description']),
-            );
-          }),
+      body: Visibility(
+        visible: isLoading,
+        replacement: RefreshIndicator(
+          onRefresh: fetchTodo,
+          child: ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    child: Text('${index + 1}'),
+                  ),
+                  title: Text(item['title']),
+                  subtitle: Text(item['description']),
+                );
+              }),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: navigateToAddPage,
         label: const Text("Add Todo"),
@@ -65,8 +75,9 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         items = result;
       });
-    } else {
-      //show error message for fail response
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 }
