@@ -35,12 +35,36 @@ class _HomePageState extends State<HomePage> {
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final item = items[index];
+                final id = item['_id'] as String;
                 return ListTile(
                   leading: CircleAvatar(
                     child: Text('${index + 1}'),
                   ),
                   title: Text(item['title']),
                   subtitle: Text(item['description']),
+                  trailing: PopupMenuButton(
+                    onSelected: (value) {
+                      if (value == "edit") {
+                        //Open Edit page
+                        navigateToEditPage(item);
+                      } else if (value == "delete") {
+                        // Delete and remove the item
+                        deleteById(id);
+                      }
+                    },
+                    itemBuilder: (context) {
+                      return [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text("Edit"),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text("Delete"),
+                        ),
+                      ];
+                    },
+                  ),
                 );
               }),
         ),
@@ -55,14 +79,34 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void navigateToAddPage() {
+  Future<void> navigateToAddPage() async {
     final route = MaterialPageRoute(
-      builder: (context) => const AddTodoPage(),
+      builder: (context) => AddTodoPage(),
     );
-    Navigator.push(
+    await Navigator.push(
       context,
       route,
     );
+    setState(() {
+      isLoading = true;
+    });
+    fetchTodo();
+  }
+
+  Future<void> deleteById(String id) async {
+    // delete the item
+    final url = 'https://api.nstack.in/v1/todos/$id';
+    final uri = Uri.parse(url);
+    final response = await http.delete(uri);
+    // remove item from list
+    if (response.statusCode == 200) {
+      final filtered = items.where((element) => element["_id"] != id).toList();
+      setState(() {
+        items = filtered;
+      });
+    } else {
+      showErrorMessage('deletion is fail');
+    }
   }
 
   Future<void> fetchTodo() async {
@@ -79,5 +123,28 @@ class _HomePageState extends State<HomePage> {
         isLoading = false;
       });
     }
+  }
+
+  void showErrorMessage(String message) {
+    final snackbar = SnackBar(
+        backgroundColor: Colors.red,
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+          ),
+        ));
+    ScaffoldMessenger.of(context).showSnackBar(snackbar);
+  }
+
+  Future<void> navigateToEditPage(Map item) async {
+    final route = MaterialPageRoute(
+      builder: ((context) => AddTodoPage(todo: item)),
+    );
+    await Navigator.push(context, route);
+    setState(() {
+      isLoading = true;
+    });
+    fetchTodo();
   }
 }
