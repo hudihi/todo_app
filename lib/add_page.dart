@@ -22,8 +22,13 @@ class _AddTodoPageState extends State<AddTodoPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.todo != null) {
+    final todo = widget.todo;
+    if (todo != null) {
       isEdit = true;
+      final title = todo['title'];
+      final description = todo['description'];
+      titleController.text = title;
+      descriptionController.text = description;
     }
   }
 
@@ -57,17 +62,52 @@ class _AddTodoPageState extends State<AddTodoPage> {
               backgroundColor:
                   MaterialStateColor.resolveWith((states) => Colors.blue),
             ),
-            onPressed: submit,
-            child: const Text(
-              'submit',
-              style: TextStyle(
-                color: Colors.white,
-              ),
-            ),
+            onPressed: isEdit ? updateData : submit,
+            child: isEdit
+                ? const Text('Update',
+                    style: TextStyle(
+                      color: Colors.white,
+                    ))
+                : const Text(
+                    'submit',
+                    style: TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> updateData() async {
+    final todo = widget.todo;
+    if (todo == null) {
+      print("You cannot call update");
+      return;
+    }
+    final title = titleController.text;
+    final description = descriptionController.text;
+
+    final body = {
+      "title": title,
+      "description": description,
+      "is_completed": false
+    };
+    //update the data in the server
+    final id = todo['_id'];
+    var url = 'https://api.nstack.in/v1/todos/$id';
+    final uri = Uri.parse(url);
+    final response = await http.put(
+      uri,
+      body: jsonEncode(body),
+      headers: {"Content-Type": 'application/json'},
+    );
+    if (response.statusCode == 200) {
+      showSuccessMessage("Updating is successfully");
+    } else {
+      showErrorMessage("Updating is fail");
+    }
   }
 
   Future<void> submit() async {
